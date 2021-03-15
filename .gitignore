@@ -1,0 +1,4 @@
+*.exe
+go.sum
+data/*
+tcpserver/tcpclient/*
