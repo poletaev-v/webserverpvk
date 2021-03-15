@@ -10,6 +10,7 @@ import (
 type Config struct {
 	HTTP httpConf
 	TCP  tcpConf
+	DATA dataConf
 }
 
 type httpConf struct {
@@ -25,6 +26,12 @@ type tcpConf struct {
 	Port        string
 	BufferLimit int
 	AwaitConn   time.Duration
+}
+
+type dataConf struct {
+	availableFields map[string]string
+	message         string
+	timeDuration    int64
 }
 
 func setConfigs(filepath string, cfg *Config) error {
@@ -43,6 +50,10 @@ func setConfigs(filepath string, cfg *Config) error {
 	cfg.TCP.Port = viper.GetString("tcp.port")
 	cfg.TCP.AwaitConn = viper.GetDuration("tcp.awaitConn")
 	cfg.TCP.BufferLimit = viper.GetInt("tcp.bufLimitMIB")
+
+	cfg.DATA.availableFields = viper.GetStringMapString("data.availableFields")
+	cfg.DATA.message = viper.GetString("data.message")
+	cfg.DATA.timeDuration = viper.GetInt64("data.timeDuration")
 	return nil
 }
 

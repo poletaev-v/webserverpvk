@@ -2,3 +2,4 @@
 go.sum
 data/*
 tcpserver/tcpclient/*
+assets/js*

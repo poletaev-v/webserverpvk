@@ -25,6 +25,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -41,8 +43,12 @@ const (
 	pathConfigs string = "configs/main"
 )
 
+// TODO:
+// Parse json to structure
+// for map and save available fields to map to render html
 func main() {
 	var cfg Config
+	var ttl int64
 
 	err := setConfigs(pathConfigs, &cfg)
 	if err != nil {
@@ -63,11 +69,10 @@ func main() {
 	}()
 
 	// Serve HTTP server
+	// gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
-	// router.Delims("{[{", "}]}")
 	router.Static("/assets", "./assets")
 	router.Static("/fonts", "./fonts")
-	router.Static("/data", "./data")
 	router.LoadHTMLGlob("templates/*")
 	s := &http.Server{
 		Addr:           cfg.HTTP.Addr + ":" + cfg.HTTP.Port,
@@ -78,29 +83,84 @@ func main() {
 	}
 
 	router.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{
-			"message": "Ведется весовой и габаритный контроль",
-		})
+		log.Println("ttl", ttl)
+		if ttl == 0 {
+			html := "<div class='message'>" + cfg.DATA.message + "</div>"
+			f, _ := os.OpenFile("templates/content.html", os.O_WRONLY, 0664)
+			defer f.Close()
+			// Clear file before write data
+			f.Truncate(0)
+			_, err := f.Write([]byte(html))
+			if err != nil {
+				log.Println(err)
+			}
+			c.HTML(http.StatusOK, "index.html", html)
+		} else if ttl > 0 && time.Now().Unix() > ttl {
+			ttl = 0
+			c.HTML(http.StatusOK, "index.html", gin.H{})
+		} else {
+			c.HTML(http.StatusOK, "index.html", gin.H{})
+		}
 	})
 
 	router.POST("/"+refreshURL, func(c *gin.Context) {
+		var objMAP map[string]interface{}
 		var bc []byte
+		result := make(map[string]interface{})
+
 		b, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			log.Println(err)
 		}
-		// Adding timestamp to json
-		if b[len(b)-1] == 125 {
-			strTime := strconv.FormatInt((time.Now().UnixNano() / int64(time.Millisecond)), 10)
-			bc = append(b[:len(b)-1], []byte(`,"timeStamp":`+strTime+`}`)...)
-		}
 
-		f, _ := os.OpenFile("data/data.json", os.O_WRONLY|os.O_CREATE, 0664)
-		_, err = f.Write(bc)
+		err = json.Unmarshal(b, &objMAP)
 		if err != nil {
 			log.Println(err)
 		}
-		f.Close()
+
+		for key, val := range cfg.DATA.availableFields {
+			if item, ok := objMAP[key]; ok {
+				result[val] = item
+			}
+		}
+
+		if len(result) > 0 {
+			f, _ := os.OpenFile("templates/content.html", os.O_WRONLY, 0664)
+			defer f.Close()
+			html := ""
+			for key, val := range result {
+				tmpVal := ""
+				switch valT := val.(type) {
+				case string:
+					log.Println("string", valT)
+					tmpVal = valT
+				case float64:
+					tmpVal = fmt.Sprintf("%.f", valT)
+				case int:
+					log.Println("int", valT)
+					tmpVal = strconv.Itoa(valT)
+				case uint64:
+					log.Println("uint64", valT)
+					tmpVal = strconv.FormatUint(valT, 10)
+				case bool:
+					if valT {
+						tmpVal = "Да"
+					} else {
+						tmpVal = "Нет"
+					}
+				}
+				html += "<div class='pvk-item'>" + key + ": " + tmpVal + "</div>"
+			}
+			bc = []byte(html)
+			// Clear file before write data
+			f.Truncate(0)
+			_, err = f.Write(bc)
+			if err != nil {
+				log.Println(err)
+			}
+			ttl = time.Now().Unix() + cfg.DATA.timeDuration
+			log.Println("ttl POST", ttl)
+		}
 	})
 
 	log.Fatal(s.ListenAndServe())

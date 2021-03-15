@@ -3,6 +3,7 @@ package tcpserver
 import (
 	"encoding/xml"
 	"reflect"
+	"strings"
 )
 
 // XMLParser for parsing xml file
@@ -162,6 +163,6 @@ func (xp XMLParser) getRecValue(e reflect.Value, f reflect.StructField, values m
 			xp.getRecValue(e.Field(i), e.Type().Field(i), values)
 		}
 	} else {
-		values[f.Name] = e.Interface()
+		values[strings.ToLower(f.Name)] = e.Interface()
 	}
 }

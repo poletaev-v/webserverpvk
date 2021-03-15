@@ -10,3 +10,12 @@ tcp:
   port: 4545
   bufLimitMIB: 2
   awaitConn: 10s
+
+data:
+  timeDuration: 20
+  availableFields:
+    TrackGrossWeight: "Общая масса, кг"
+    TrackWidth: "Ширина, см"
+    TrackWHeight: "Высота, см"
+    TrackLength: "Длина, см"
+  message: "Ведется весовой и габаритный контроль"
