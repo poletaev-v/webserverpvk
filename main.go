@@ -38,14 +38,8 @@ import (
 	"github.com/happydev/webserverpvk/tcpserver"
 )
 
-const (
-	refreshURL  string = "VcjZt3ZMwbmzvtif3Q9WzrjhZnZefctK5Cxw0N5vzSrl5HTtrMMWTTEIHAQbh7TThzyBgUf6lNMdU6VMtKVq2TamtDBpsvcEOFggFnE5UXFZ3sWGHIxMpPGO"
-	pathConfigs string = "configs/main"
-)
+const pathConfigs string = "configs/main"
 
-// TODO:
-// Parse json to structure
-// for map and save available fields to map to render html
 func main() {
 	var cfg Config
 	var ttl int64
@@ -59,7 +53,7 @@ func main() {
 	tcpsrv := tcpserver.TCPserver{
 		AddrHTTP:    cfg.HTTP.Addr,
 		PortHTTP:    cfg.HTTP.Port,
-		EndpointURL: refreshURL,
+		EndpointURL: cfg.HTTP.RefreshURL,
 		BufferLimit: cfg.TCP.BufferLimit,
 		AwaitConn:   cfg.TCP.AwaitConn,
 	}
@@ -69,11 +63,12 @@ func main() {
 	}()
 
 	// Serve HTTP server
-	// gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	router.Static("/assets", "./assets")
 	router.Static("/fonts", "./fonts")
-	router.LoadHTMLGlob("templates/*")
+	router.Static("/templates", "./templates")
+	router.StaticFile("/favicon.ico", "./favicon.ico")
 	s := &http.Server{
 		Addr:           cfg.HTTP.Addr + ":" + cfg.HTTP.Port,
 		Handler:        router,
@@ -83,7 +78,8 @@ func main() {
 	}
 
 	router.GET("/", func(c *gin.Context) {
-		log.Println("ttl", ttl)
+		router.LoadHTMLGlob("templates/*")
+
 		if ttl == 0 {
 			html := "<div class='message'>" + cfg.DATA.message + "</div>"
 			f, _ := os.OpenFile("templates/content.html", os.O_WRONLY, 0664)
@@ -103,7 +99,7 @@ func main() {
 		}
 	})
 
-	router.POST("/"+refreshURL, func(c *gin.Context) {
+	router.POST("/"+cfg.HTTP.RefreshURL, func(c *gin.Context) {
 		var objMAP map[string]interface{}
 		var bc []byte
 		result := make(map[string]interface{})
@@ -158,8 +154,8 @@ func main() {
 			if err != nil {
 				log.Println(err)
 			}
+			// Set ttl for await picture to screen
 			ttl = time.Now().Unix() + cfg.DATA.timeDuration
-			log.Println("ttl POST", ttl)
 		}
 	})
 

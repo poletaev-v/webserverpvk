@@ -19,6 +19,7 @@ type httpConf struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	MaxHeaderMIB int
+	RefreshURL   string
 }
 
 type tcpConf struct {
@@ -45,6 +46,7 @@ func setConfigs(filepath string, cfg *Config) error {
 	cfg.HTTP.ReadTimeout = viper.GetDuration("http.readTimeout")
 	cfg.HTTP.WriteTimeout = viper.GetDuration("http.writeTimeout")
 	cfg.HTTP.MaxHeaderMIB = viper.GetInt("http.maxHeaderMIB")
+	cfg.HTTP.RefreshURL = viper.GetString("http.refreshURL")
 
 	cfg.TCP.Addr = viper.GetString("tcp.addr")
 	cfg.TCP.Port = viper.GetString("tcp.port")

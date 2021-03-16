@@ -1,9 +1,10 @@
 http:
   addr: "192.168.100.4"
-  port: 8080
+  port: 80
   maxHeaderMIB: 1
   readTimeout: 10s
   writeTimeout: 10s
+  refreshURL: "VcjZt3ZMwbmzvtif3Q9WzrjhZnZefctK5Cxw0N5vzSrl5HTtrMMWTTEIHAQbh7TThzyBgUf6lNMdU6VMtKVq2TamtDBpsvcEOFggFnE5UXFZ3sWGHIxMpPGO"
 
 tcp:
   addr: "192.168.100.4"

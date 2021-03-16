@@ -13,10 +13,22 @@
 }
 
 * {
-    font-family: 'Roboto';
+    font-family: monospace;
+    font-size: 12px;
+    margin: 0;
+}
+
+body {
+    width: 128px;
+    height: 128px;
+	background-color: #000;
+    color: yellow;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 div#app {
     text-align: center;
-    line-height: 24px;
 }
