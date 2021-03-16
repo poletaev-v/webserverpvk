@@ -1,22 +1,22 @@
 http:
-  addr: "192.168.100.4"
-  port: 80
-  maxHeaderMIB: 1
-  readTimeout: 10s
-  writeTimeout: 10s
-  refreshURL: "VcjZt3ZMwbmzvtif3Q9WzrjhZnZefctK5Cxw0N5vzSrl5HTtrMMWTTEIHAQbh7TThzyBgUf6lNMdU6VMtKVq2TamtDBpsvcEOFggFnE5UXFZ3sWGHIxMpPGO"
+  addr: "192.168.100.4" # local address
+  port: 80              # local HTTP port
+  maxHeaderMIB: 1       # max header megabytes
+  readTimeout: 10s      # timeout to read
+  writeTimeout: 10s     # timeout to write
+  refreshURL: "VcjZt3ZMwbmzvtif3Q9WzrjhZnZefctK5Cxw0N5vzSrl5HTtrMMWTTEIHAQbh7TThzyBgUf6lNMdU6VMtKVq2TamtDBpsvcEOFggFnE5UXFZ3sWGHIxMpPGO" # endpoint for receive data from tcp client
 
 tcp:
-  addr: "192.168.100.4"
-  port: 4545
-  bufLimitMIB: 2
-  awaitConn: 10s
+  addr: "192.168.100.4" # local address
+  port: 4545            # local TCP port
+  bufLimitMIB: 2        # buffer limit by send to http server 
+  awaitConn: 10s        # await connection by client
 
 data:
-  timeDuration: 20
-  availableFields:
+  timeDuration: 20      # the screen refresh time after receive data from tcp
+  availableFields:      # data to show
     TrackGrossWeight: "Общая масса, кг"
     TrackWidth: "Ширина, см"
     TrackWHeight: "Высота, см"
     TrackLength: "Длина, см"
-  message: "Ведется весовой и габаритный контроль"
+  message: "Ведется весовой и габаритный контроль" # default message
