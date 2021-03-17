@@ -1,4 +1,6 @@
 *.exe
+*.zip
+*.rar
 go.sum
 data/*
 tcpserver/tcpclient/*
