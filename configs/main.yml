@@ -14,9 +14,46 @@ tcp:
 
 data:
   timeDuration: 20      # the screen refresh time after receive data from tcp
+  tagPlatform: "PlatformId"
+  multipleViolationField: "ThrustSign"
+  bindMultipleViolationField: "NormThrust"
   availableFields:      # data to show
-    TrackGrossWeight: "Общая масса, кг"
-    TrackWidth: "Ширина, см"
-    TrackWHeight: "Высота, см"
+    TrackGrossWeight: "Масса ТС"
+    NormGrossWeight: "Допустимая полная масса ТС"
+    TrackThrust1: "Нагрузка на ось 1, кг"
+    NormThrust1: "Допустимая нагрузка на ось 1, кг"
+    TrackThrust2: "Нагрузка на ось 2, кг"
+    NormThrust2: "Допустимая нагрузка на ось 2, кг"
+    TrackThrust3: "Нагрузка на ось 3, кг"
+    NormThrust3: "Допустимая нагрузка на ось 3, кг"
+    TrackThrust4: "Нагрузка на ось 4, кг"
+    NormThrust4: "Допустимая нагрузка на ось 4, кг"
+    TrackThrust5: "Нагрузка на ось 5, кг"
+    NormThrust5: "Допустимая нагрузка на ось 5, кг"
     TrackLength: "Длина, см"
+    NormLength: "Допустимая длина"
+    TrackWidth: "Ширина, см"
+    NormWidth: "Допустимая ширина, см"
+    TrackWHeight: "Высота, см"
+    NormHeight: "Допустимая высота, см"
+    TrackStateNumber: "Номер ТС"
+    RearStateNumber: "Номер ТС"
+  directionTravel:
+    mon1: [1, 2]  # Arkhangelsk
+    mon2: [3, 4]  # Moscow
+  trackThrustes: ["TrackThrust1", "TrackThrust2", "TrackThrust3", "TrackThrust4", "TrackThrust5"]
+  violationTypes: ["WeightSign", "ThrustSign", "LengthSign", "WidthSign", "HeightSign"]
+  numberTC: ["TrackStateNumber", "RearStateNumber"]
+  violationName:
+    WeightSign: "Превышение по полной массе"
+    ThrustSign: "Превышение по осевым нагрузкам"
+    LengthSign: "Превышение длины"
+    WidthSign: "Превышение ширины"
+    HeightSign: "Превышение высоты"
+  violationValue:
+    WeightSign: ["TrackGrossWeight", "NormGrossWeight"]
+    ThrustSign: ["TrackThrust1", "NormThrust1", "TrackThrust2", "NormThrust2", "TrackThrust3", "NormThrust3", "TrackThrust4", "NormThrust4", "TrackThrust5", "NormThrust5"]
+    LengthSign: ["TrackLength", "NormLength"]
+    WidthSign: ["TrackWidth", "NormWidth"]
+    HeightSign: ["TrackWHeight", "NormHeight"]
   message: "Ведется весовой и габаритный контроль" # default message

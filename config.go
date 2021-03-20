@@ -30,9 +30,18 @@ type tcpConf struct {
 }
 
 type dataConf struct {
-	availableFields map[string]string
-	message         string
-	timeDuration    int64
+	directionTravel            map[string][]string
+	tagPlatform                string
+	multipleViolationField     string
+	bindMultipleViolationField string
+	availableFields            map[string]string
+	violationTypes             []string
+	violationValue             map[string][]string
+	violationName              map[string]string
+	trackThrustes              []string
+	numberTC                   []string
+	message                    string
+	timeDuration               int64
 }
 
 func setConfigs(filepath string, cfg *Config) error {
@@ -53,7 +62,16 @@ func setConfigs(filepath string, cfg *Config) error {
 	cfg.TCP.AwaitConn = viper.GetDuration("tcp.awaitConn")
 	cfg.TCP.BufferLimit = viper.GetInt("tcp.bufLimitMIB")
 
+	cfg.DATA.tagPlatform = viper.GetString("data.tagPlatform")
+	cfg.DATA.multipleViolationField = viper.GetString("data.multipleViolationField")
+	cfg.DATA.bindMultipleViolationField = viper.GetString("data.bindMultipleViolationField")
+	cfg.DATA.violationTypes = viper.GetStringSlice("data.violationTypes")
+	cfg.DATA.violationValue = viper.GetStringMapStringSlice("data.violationValue")
+	cfg.DATA.violationName = viper.GetStringMapString("data.violationName")
+	cfg.DATA.directionTravel = viper.GetStringMapStringSlice("data.directionTravel")
 	cfg.DATA.availableFields = viper.GetStringMapString("data.availableFields")
+	cfg.DATA.trackThrustes = viper.GetStringSlice("data.trackThrustes")
+	cfg.DATA.numberTC = viper.GetStringSlice("data.numberTC")
 	cfg.DATA.message = viper.GetString("data.message")
 	cfg.DATA.timeDuration = viper.GetInt64("data.timeDuration")
 	return nil

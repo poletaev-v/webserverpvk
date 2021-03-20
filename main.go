@@ -32,6 +32,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -42,11 +43,22 @@ const pathConfigs string = "configs/main"
 
 func main() {
 	var cfg Config
-	var ttl int64
 
+	// Set configs from config file
 	err := setConfigs(pathConfigs, &cfg)
 	if err != nil {
 		panic(err)
+	}
+
+	if len(cfg.DATA.directionTravel) == 0 {
+		panic("Direction of travel not be empty, please add direction in config file")
+	}
+
+	ttlMAP := make(map[string]*int64, len(cfg.DATA.directionTravel))
+	// Direction name to monitor mon1, mon2, ...
+	for dName := range cfg.DATA.directionTravel {
+		ttl := int64(0)
+		ttlMAP[dName] = &ttl
 	}
 
 	// Serve TCP server
@@ -67,7 +79,6 @@ func main() {
 	router := gin.Default()
 	router.Static("/assets", "./assets")
 	router.Static("/fonts", "./fonts")
-	router.Static("/templates", "./templates")
 	router.StaticFile("/favicon.ico", "./favicon.ico")
 	s := &http.Server{
 		Addr:           cfg.HTTP.Addr + ":" + cfg.HTTP.Port,
@@ -77,12 +88,12 @@ func main() {
 		MaxHeaderBytes: cfg.HTTP.MaxHeaderMIB << 20, // MIB
 	}
 
-	router.GET("/", func(c *gin.Context) {
-		router.LoadHTMLGlob("templates/*")
+	router.GET("/mon1", func(c *gin.Context) {
+		router.LoadHTMLGlob("templates/mon1/*")
 
-		if ttl == 0 {
+		if *ttlMAP["mon1"] == int64(0) {
 			html := "<div class='message'>" + cfg.DATA.message + "</div>"
-			f, _ := os.OpenFile("templates/content.html", os.O_WRONLY, 0664)
+			f, _ := os.OpenFile("templates/mon1/content.html", os.O_WRONLY, 0664)
 			defer f.Close()
 			// Clear file before write data
 			f.Truncate(0)
@@ -91,18 +102,54 @@ func main() {
 				log.Println(err)
 			}
 			c.HTML(http.StatusOK, "index.html", html)
-		} else if ttl > 0 && time.Now().Unix() > ttl {
-			ttl = 0
+		} else if *ttlMAP["mon1"] > int64(0) && time.Now().Unix() > *ttlMAP["mon1"] {
+			*ttlMAP["mon1"] = int64(0)
 			c.HTML(http.StatusOK, "index.html", gin.H{})
 		} else {
 			c.HTML(http.StatusOK, "index.html", gin.H{})
 		}
 	})
 
+	router.GET("/mon2", func(c *gin.Context) {
+		router.LoadHTMLGlob("templates/mon2/*")
+
+		if *ttlMAP["mon2"] == int64(0) {
+			html := "<div class='message'>" + cfg.DATA.message + "</div>"
+			f, _ := os.OpenFile("templates/mon2/content.html", os.O_WRONLY, 0664)
+			defer f.Close()
+			// Clear file before write data
+			f.Truncate(0)
+			_, err := f.Write([]byte(html))
+			if err != nil {
+				log.Println(err)
+			}
+			c.HTML(http.StatusOK, "index.html", html)
+		} else if *ttlMAP["mon2"] > int64(0) && time.Now().Unix() > *ttlMAP["mon2"] {
+			*ttlMAP["mon2"] = int64(0)
+			c.HTML(http.StatusOK, "index.html", gin.H{})
+		} else {
+			c.HTML(http.StatusOK, "index.html", gin.H{})
+		}
+	})
+
+	router.GET("/", func(c *gin.Context) {
+		router.LoadHTMLFiles("templates/index.html", "templates/content.html")
+		html := "<div class='message'>" + cfg.DATA.message + "</div>"
+		f, _ := os.OpenFile("templates/content.html", os.O_WRONLY, 0664)
+		defer f.Close()
+		// Clear file before write data
+		f.Truncate(0)
+		_, err := f.Write([]byte(html))
+		if err != nil {
+			log.Println(err)
+		}
+		c.HTML(http.StatusOK, "index.html", html)
+	})
+
 	router.POST("/"+cfg.HTTP.RefreshURL, func(c *gin.Context) {
 		var objMAP map[string]interface{}
-		var bc []byte
-		result := make(map[string]interface{})
+		var direction string
+		var result resultData
 
 		b, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
@@ -114,50 +161,145 @@ func main() {
 			log.Println(err)
 		}
 
-		for key, val := range cfg.DATA.availableFields {
-			if item, ok := objMAP[key]; ok {
-				result[val] = item
+		// Get direction by monitor
+		for key, val := range cfg.DATA.directionTravel {
+			for _, item := range val {
+				if fmt.Sprintf("%.f", objMAP[strings.ToLower(cfg.DATA.tagPlatform)].(float64)) == item {
+					direction = key
+				}
 			}
 		}
 
-		if len(result) > 0 {
-			f, _ := os.OpenFile("templates/content.html", os.O_WRONLY, 0664)
-			defer f.Close()
-			html := ""
-			for key, val := range result {
-				tmpVal := ""
-				switch valT := val.(type) {
-				case string:
-					log.Println("string", valT)
-					tmpVal = valT
-				case float64:
-					tmpVal = fmt.Sprintf("%.f", valT)
-				case int:
-					log.Println("int", valT)
-					tmpVal = strconv.Itoa(valT)
-				case uint64:
-					log.Println("uint64", valT)
-					tmpVal = strconv.FormatUint(valT, 10)
-				case bool:
-					if valT {
-						tmpVal = "Да"
-					} else {
-						tmpVal = "Нет"
+		// Get violations
+		for _, viType := range cfg.DATA.violationTypes {
+			if item, ok := objMAP[strings.ToLower(viType)]; ok {
+				// if isset violation, then add violation to result map
+				if item.(bool) {
+					rkey := cfg.DATA.violationName[strings.ToLower(viType)]
+					result.items = append(result.items, resultItem{
+						key:       rkey,
+						valueItem: "",
+					})
+
+					for _, viField := range cfg.DATA.violationValue[strings.ToLower(viType)] {
+						if strings.ToLower(viType) == strings.ToLower(cfg.DATA.multipleViolationField) {
+							tField, tValue, nField, nValue := getTrackThrust(objMAP, &cfg)
+							if tValue != nil {
+								result.items = append(result.items, resultItem{
+									key:       cfg.DATA.availableFields[strings.ToLower(tField)],
+									valueItem: tValue,
+								})
+
+								result.items = append(result.items, resultItem{
+									key:       cfg.DATA.availableFields[strings.ToLower(nField)],
+									valueItem: nValue,
+								})
+								break
+							}
+						} else {
+							if item, ok := objMAP[strings.ToLower(viField)]; ok {
+								var ritem resultItem
+								ritem.key = cfg.DATA.availableFields[strings.ToLower(viField)]
+								ritem.valueItem = item
+								result.items = append(result.items, ritem)
+							}
+						}
+					}
+					// Show only one violation
+					break
+				}
+			}
+		}
+
+		if len(result.items) > 0 && direction != "" {
+			// Get transport number
+			for _, tcNum := range cfg.DATA.numberTC {
+				if item, ok := objMAP[strings.ToLower(tcNum)]; ok {
+					if item.(string) != "" {
+						result.items = append(result.items, resultItem{
+							key:       cfg.DATA.availableFields[strings.ToLower(tcNum)],
+							valueItem: item,
+						})
+						// Show only one transport number
+						break
 					}
 				}
-				html += "<div class='pvk-item'>" + key + ": " + tmpVal + "</div>"
 			}
-			bc = []byte(html)
-			// Clear file before write data
-			f.Truncate(0)
-			_, err = f.Write(bc)
+
+			err = routeValues(direction, result.items, &cfg, ttlMAP[direction])
 			if err != nil {
 				log.Println(err)
 			}
-			// Set ttl for await picture to screen
-			ttl = time.Now().Unix() + cfg.DATA.timeDuration
 		}
 	})
 
 	log.Fatal(s.ListenAndServe())
+}
+
+type resultData struct {
+	items []resultItem
+}
+
+type resultItem struct {
+	key       string
+	valueItem interface{}
+}
+
+func routeValues(direction string, items []resultItem, cfg *Config, ttl *int64) error {
+	var bc []byte
+
+	f, _ := os.OpenFile("templates/"+direction+"/content.html", os.O_WRONLY, 0664)
+	defer f.Close()
+	html := ""
+	for _, val := range items {
+		tmpVal := ""
+		switch valT := val.valueItem.(type) {
+		case string:
+			tmpVal = valT
+		case float64:
+			tmpVal = fmt.Sprintf("%.f", valT)
+		case int:
+			tmpVal = strconv.Itoa(valT)
+		case uint64:
+			tmpVal = strconv.FormatUint(valT, 10)
+		case bool:
+			if valT {
+				tmpVal = "Да"
+			} else {
+				tmpVal = "Нет"
+			}
+		}
+
+		if tmpVal == "" {
+			html += "<div class='pvk-item'>" + val.key + "</div>"
+		} else {
+			html += "<div class='pvk-item'>" + val.key + ": " + tmpVal + "</div>"
+		}
+	}
+	bc = []byte(html)
+	// Clear file before write data
+	f.Truncate(0)
+	_, err := f.Write(bc)
+	if err != nil {
+		return err
+	}
+	// Set ttl for await picture to screen
+	*ttl = time.Now().Unix() + cfg.DATA.timeDuration
+	return nil
+}
+
+// getTrackThrust - getting track thrust and bind fields
+func getTrackThrust(values map[string]interface{}, cfg *Config) (string, interface{}, string, interface{}) {
+	for _, val := range cfg.DATA.trackThrustes {
+		if item, ok := values[strings.ToLower(val)]; ok {
+			// Getting number track thrust - TrackThrust1 = 1
+			ntt := val[len(val)-1:]
+			if bindFieldThrust, ok := values[strings.ToLower(cfg.DATA.bindMultipleViolationField)+ntt]; ok {
+				if item.(float64) > bindFieldThrust.(float64) {
+					return strings.ToLower(val), item, strings.ToLower(cfg.DATA.bindMultipleViolationField) + ntt, bindFieldThrust
+				}
+			}
+		}
+	}
+	return "", nil, "", nil
 }
