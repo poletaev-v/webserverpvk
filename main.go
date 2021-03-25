@@ -41,6 +41,11 @@ import (
 
 const pathConfigs string = "configs/main"
 
+// Get current time every day
+// Check file, compare time from file and current time
+// If current time less time from file, then os.Exit
+// Else write time in file
+// Crypt time with salt before writing time in file
 func main() {
 	var cfg Config
 
@@ -71,7 +76,7 @@ func main() {
 	}
 
 	go func() {
-		log.Fatal(tcpsrv.Run(cfg.TCP.Addr, cfg.TCP.Port, cfg.TCP.BufferLimit, cfg.TCP.AwaitConn))
+		log.Fatal(tcpsrv.Run(cfg.TCP.Addr, cfg.TCP.Port, cfg.TCP.BufferLimit, cfg.TCP.AwaitConn, cfg.SECURITY.deadline))
 	}()
 
 	// Serve HTTP server

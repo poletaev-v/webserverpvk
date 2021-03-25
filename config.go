@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	HTTP httpConf
-	TCP  tcpConf
-	DATA dataConf
+	HTTP     httpConf
+	TCP      tcpConf
+	DATA     dataConf
+	SECURITY securityConf
 }
 
 type httpConf struct {
@@ -44,6 +45,10 @@ type dataConf struct {
 	timeDuration               int64
 }
 
+type securityConf struct {
+	deadline time.Time
+}
+
 func setConfigs(filepath string, cfg *Config) error {
 	err := parseConfigFile(filepath)
 	if err != nil {
@@ -74,6 +79,9 @@ func setConfigs(filepath string, cfg *Config) error {
 	cfg.DATA.numberTC = viper.GetStringSlice("data.numberTC")
 	cfg.DATA.message = viper.GetString("data.message")
 	cfg.DATA.timeDuration = viper.GetInt64("data.timeDuration")
+
+	// Setting deadline
+	cfg.SECURITY.deadline, _ = time.Parse("2006-Jan-02", "2021-May-15")
 	return nil
 }
 

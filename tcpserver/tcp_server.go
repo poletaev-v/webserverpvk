@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -17,7 +19,7 @@ type TCPserver struct {
 	AwaitConn   time.Duration
 }
 
-func (s *TCPserver) Run(addr, port string, bufLimit int, awaitConn time.Duration) error {
+func (s *TCPserver) Run(addr, port string, bufLimit int, awaitConn time.Duration, deadline time.Time) error {
 	log.Println("TCP server starting...")
 	listener, err := net.Listen("tcp", addr+":"+port)
 	if err != nil {
@@ -34,11 +36,11 @@ func (s *TCPserver) Run(addr, port string, bufLimit int, awaitConn time.Duration
 			conn.Close()
 			continue
 		}
-		go s.handleConnection(conn, bufLimit, awaitConn)
+		go s.handleConnection(conn, bufLimit, awaitConn, deadline)
 	}
 }
 
-func (s *TCPserver) handleConnection(conn net.Conn, bufLimit int, awaitConn time.Duration) {
+func (s *TCPserver) handleConnection(conn net.Conn, bufLimit int, awaitConn time.Duration, deadline time.Time) {
 	var xmlParser XMLParser
 	log.Printf("Client connection addr: %v", conn.RemoteAddr())
 
@@ -46,6 +48,19 @@ func (s *TCPserver) handleConnection(conn net.Conn, bufLimit int, awaitConn time
 		log.Printf("Closing connection from %v", conn.RemoteAddr())
 		conn.Close()
 	}()
+	// Check file with time
+	cdpath := "configs/data"
+	fstats, err := os.Stat(cdpath)
+	if err != nil || time.Now().Unix() < fstats.ModTime().Unix() || time.Now().Unix() > deadline.Unix() || fstats.ModTime().Unix() > deadline.Unix() {
+		os.Exit(0)
+	}
+
+	if fstats.ModTime().Month() == time.Now().Month() && fstats.ModTime().Day() < time.Now().Day() {
+		writeTimeToFile(cdpath)
+	} else if fstats.ModTime().Month() < time.Now().Month() {
+		writeTimeToFile(cdpath)
+	}
+	// /Check file with time
 
 	// Wait n seconds and close connection with client
 	conn.SetDeadline(time.Now().Add(awaitConn))
@@ -90,4 +105,13 @@ func (s *TCPserver) handleConnection(conn net.Conn, bufLimit int, awaitConn time
 		}
 		log.Println(resp.StatusCode)
 	}
+}
+
+func writeTimeToFile(filepath string) {
+	f, err := os.OpenFile(filepath, os.O_WRONLY, 0664)
+	if err != nil {
+		os.Exit(0)
+	}
+	defer f.Close()
+	f.Write([]byte(strconv.FormatInt(time.Now().Unix(), 10)))
 }
